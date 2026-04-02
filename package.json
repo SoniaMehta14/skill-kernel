@@ -1,6 +1,6 @@
 {
   "name": "skill-kernel",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Agentic Workflow Platform with Supabase",
   "main": "index.js",
   "scripts": {
@@ -9,13 +9,15 @@
     "db:reset": "supabase db reset",
     "dev": "supabase start",
     "type-check": "tsc --noEmit",
-    "lint": "eslint --ext .ts skills/ supabase/"
+    "lint": "eslint --ext .ts skills/ supabase/ services/ api/ observability/",
+    "build": "tsc"
   },
-  "keywords": ["agentic", "workflow", "supabase"],
+  "keywords": ["agentic", "workflow", "supabase", "observability"],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@supabase/supabase-js": "^2.38.0"
+    "@supabase/supabase-js": "^2.38.0",
+    "redis": "^4.6.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
@@ -26,4 +28,5 @@
     "typescript": "^5.0.0"
   }
 }
+
 
