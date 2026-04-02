@@ -117,19 +117,102 @@ class SupabaseClient {
   }
 
   /**
-   * Get all failed logs for a task
+   * Execute raw SQL query
    */
-  async getFailedLogs(taskId: string): Promise<ExecutionLogEntry[]> {
+  async executeQuery(query: string, params?: any[]): Promise<any> {
+    const { data, error } = await this.client.rpc("execute_query", {
+      query,
+      params: params || [],
+    });
+
+    if (error) throw new Error(`Query failed: ${error.message}`);
+    return data;
+  }
+
+  /**
+   * Update token usage for a task
+   */
+  async updateTokenUsage(id: string, tokens_used: number): Promise<TaskRecord> {
     const { data, error } = await this.client
-      .from("execution_logs")
+      .from("tasks")
+      .update({
+        token_used: tokens_used,
+        updated_at: new Date(),
+      })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw new Error(`Failed to update token usage: ${error.message}`);
+    return data as TaskRecord;
+  }
+
+  /**
+   * Increment iteration counter
+   */
+  async incrementIterationCount(id: string): Promise<number> {
+    const { data: current } = await this.client
+      .from("tasks")
+      .select("iteration_count")
+      .eq("id", id)
+      .single();
+
+    const newCount = (current?.iteration_count || 0) + 1;
+
+    const { data, error } = await this.client
+      .from("tasks")
+      .update({
+        iteration_count: newCount,
+        updated_at: new Date(),
+      })
+      .eq("id", id)
+      .select("iteration_count")
+      .single();
+
+    if (error) throw new Error(`Failed to increment iterations: ${error.message}`);
+    return data.iteration_count;
+  }
+
+  /**
+   * Get budget alerts for a task
+   */
+  async getBudgetAlerts(taskId: string): Promise<any[]> {
+    const { data, error } = await this.client
+      .from("task_budget_alerts")
       .select("*")
       .eq("task_id", taskId)
-      .eq("status", "error")
       .order("created_at", { ascending: false });
 
-    if (error) throw new Error(`Failed to fetch failed logs: ${error.message}`);
-    return data as ExecutionLogEntry[];
+    if (error) throw new Error(`Failed to fetch alerts: ${error.message}`);
+    return data;
   }
-}
+
+  /**
+   * Create a budget alert
+   */
+  async createBudgetAlert(
+    taskId: string,
+    alert_type: string,
+    severity: string,
+    message: string,
+    metadata?: Record<string, unknown>
+  ): Promise<string> {
+    const { data, error } = await this.client
+      .from("task_budget_alerts")
+      .insert([
+        {
+          task_id: taskId,
+          alert_type,
+          severity,
+          message,
+          metadata,
+        },
+      ])
+      .select("id")
+      .single();
+
+    if (error) throw new Error(`Failed to create alert: ${error.message}`);
+    return data.id;
+  }
 
 export { SupabaseClient, ExecutionLogEntry, TaskRecord };

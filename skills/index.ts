@@ -11,6 +11,22 @@ export { evaluateOutput, executeEvaluation, EvaluationResult } from "./qa/evalua
 
 // Communication Skills
 export { notifySlack, executeSlackNotify, SlackResponse } from "./comms/slack-notifier";
+export {
+  escalateToPagerDuty,
+  executePagerDutyEscalation,
+  PagerDutyResponse,
+  type PagerDutyEscalationInput,
+} from "./comms/pagerduty-escalator";
+
+// Observability Skills
+export { ObservabilityAgent, type TaskHealthStatus, type ObservabilityConfig } from "./observability/supervisor";
+export {
+  createApprovalGate,
+  executeApprovalGate,
+  pollGateDecision,
+  type HITLGateResponse,
+  type HITLGateInput,
+} from "./observability/hitl-gate";
 
 // Re-export execution utilities
 export {
@@ -21,3 +37,4 @@ export {
 } from "../supabase/middleware";
 
 export { SupabaseClient, type ExecutionLogEntry, type TaskRecord } from "../supabase/client";
+
