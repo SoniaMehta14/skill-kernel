@@ -1,0 +1,183 @@
+<svg width="100%" viewBox="0 0 680 820" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <style>
+      .node { cursor: pointer; }
+      .node:hover rect { opacity: 0.9; }
+      .t { font-family: 'Anthropic Sans', sans-serif; font-size: 14px; fill: currentColor; }
+      .ts { font-family: 'Anthropic Sans', sans-serif; font-size: 12px; fill: currentColor; }
+      .th { font-family: 'Anthropic Sans', sans-serif; font-size: 14px; font-weight: 500; fill: currentColor; }
+      .arr { stroke-width: 1.5; fill: none; stroke: #888; }
+      .leader { stroke: #ccc; stroke-dasharray: 2 2; }
+      
+      /* Light mode colors */
+      .c-gray rect { fill: #f1efe8; stroke: #5f5e5a; stroke-width: 0.5; }
+      .c-gray text { fill: #2c2c2a; }
+      .c-purple rect { fill: #eeedfe; stroke: #534ab7; stroke-width: 0.5; }
+      .c-purple text { fill: #26215c; }
+      .c-teal rect { fill: #e1f5ee; stroke: #0f6e56; stroke-width: 0.5; }
+      .c-teal text { fill: #04342c; }
+      .c-amber rect { fill: #faeeda; stroke: #854f0b; stroke-width: 0.5; }
+      .c-amber text { fill: #412402; }
+      .c-blue rect { fill: #e6f1fb; stroke: #185fa5; stroke-width: 0.5; }
+      .c-blue text { fill: #042c53; }
+      .c-green rect { fill: #eaf3de; stroke: #3b6d11; stroke-width: 0.5; }
+      .c-green text { fill: #173404; }
+      .c-pink rect { fill: #fbeaf0; stroke: #993556; stroke-width: 0.5; }
+      .c-pink text { fill: #4b1528; }
+      .c-coral rect { fill: #faece7; stroke: #993c1d; stroke-width: 0.5; }
+      .c-coral text { fill: #4a1b0c; }
+      
+      /* Dark mode colors */
+      @media (prefers-color-scheme: dark) {
+        .c-gray rect { fill: #444441; stroke: #b4b2a9; }
+        .c-gray text { fill: #d3d1c7; }
+        .c-purple rect { fill: #3c3489; stroke: #afa9ec; }
+        .c-purple text { fill: #cecbf6; }
+        .c-teal rect { fill: #085041; stroke: #5dcaa5; }
+        .c-teal text { fill: #9fe1cb; }
+        .c-amber rect { fill: #633806; stroke: #efb627; }
+        .c-amber text { fill: #fac775; }
+        .c-blue rect { fill: #0c447c; stroke: #85b7eb; }
+        .c-blue text { fill: #b5d4f4; }
+        .c-green rect { fill: #27500a; stroke: #97c459; }
+        .c-green text { fill: #c0dd97; }
+        .c-pink rect { fill: #72243e; stroke: #ed93b1; }
+        .c-pink text { fill: #f4c0d1; }
+        .c-coral rect { fill: #712b13; stroke: #f0997b; }
+        .c-coral text { fill: #f5c4b3; }
+      }
+    </style>
+  </defs>
+
+  <!-- Title -->
+  <text class="th" x="340" y="35" text-anchor="middle">Digital Employee OS: Multi-Agent Workflow</text>
+
+  <!-- Task Entry -->
+  <g class="node c-gray">
+    <rect x="240" y="50" width="200" height="44" rx="8"/>
+    <text class="th" x="340" y="72" text-anchor="middle" dominant-baseline="central">New Task</text>
+  </g>
+
+  <!-- Arrow down -->
+  <line x1="340" y1="94" x2="340" y2="130" class="arr" marker-end="url(#arrow)"/>
+
+  <!-- Architect Agent -->
+  <g class="node c-purple">
+    <rect x="200" y="130" width="280" height="56" rx="8"/>
+    <text class="th" x="340" y="150" text-anchor="middle" dominant-baseline="central">Architect Agent</text>
+    <text class="ts" x="340" y="168" text-anchor="middle" dominant-baseline="central">Break requirements into sub-tasks, define skills</text>
+  </g>
+
+  <!-- Arrow down -->
+  <line x1="340" y1="186" x2="340" y2="220" class="arr" marker-end="url(#arrow)"/>
+
+  <!-- Parallel Execution Phase Label -->
+  <text class="ts" x="60" y="240">Parallel execution phases</text>
+
+  <!-- SRE Agent (left) -->
+  <g class="node c-teal">
+    <rect x="40" y="240" width="150" height="56" rx="8"/>
+    <text class="th" x="115" y="260" text-anchor="middle" dominant-baseline="central">SRE Agent</text>
+    <text class="ts" x="115" y="278" text-anchor="middle" dominant-baseline="central">Maintenance &amp; RCA</text>
+  </g>
+
+  <!-- QA/Eval Agent (center-left) -->
+  <g class="node c-teal">
+    <rect x="225" y="240" width="150" height="56" rx="8"/>
+    <text class="th" x="300" y="260" text-anchor="middle" dominant-baseline="central">QA/Eval Agent</text>
+    <text class="ts" x="300" y="278" text-anchor="middle" dominant-baseline="central">Test &amp; validation</text>
+  </g>
+
+  <!-- Security/Compliance Agent (center-right) -->
+  <g class="node c-teal">
+    <rect x="410" y="240" width="150" height="56" rx="8"/>
+    <text class="th" x="485" y="260" text-anchor="middle" dominant-baseline="central">Security Agent</text>
+    <text class="ts" x="485" y="278" text-anchor="middle" dominant-baseline="central">Audit &amp; hardening</text>
+  </g>
+
+  <!-- Arrows from Architect down to parallel agents -->
+  <path d="M 280 186 L 115 240" class="arr" marker-end="url(#arrow)"/>
+  <path d="M 340 186 L 300 240" class="arr" marker-end="url(#arrow)"/>
+  <path d="M 400 186 L 485 240" class="arr" marker-end="url(#arrow)"/>
+
+  <!-- Observability Agent (right side, always-on overlay) -->
+  <g class="node c-amber">
+    <rect x="585" y="130" width="70" height="320" rx="8" opacity="0.85"/>
+    <text class="th" x="620" y="155" text-anchor="middle" dominant-baseline="central" font-size="13px">Observability</text>
+    <text class="ts" x="620" y="175" text-anchor="middle" dominant-baseline="central" font-size="11px">Monitor</text>
+    <text class="ts" x="620" y="190" text-anchor="middle" dominant-baseline="central" font-size="11px">logs</text>
+    <text class="ts" x="620" y="205" text-anchor="middle" dominant-baseline="central" font-size="11px">Kill if:</text>
+    <text class="ts" x="620" y="222" text-anchor="middle" dominant-baseline="central" font-size="10px">Token &gt; budget</text>
+    <text class="ts" x="620" y="237" text-anchor="middle" dominant-baseline="central" font-size="10px">Recursive loop</text>
+    <text class="ts" x="620" y="252" text-anchor="middle" dominant-baseline="central" font-size="10px">False success</text>
+  </g>
+
+  <!-- Monitoring connections (dashed lines) -->
+  <line x1="575" y1="270" x2="195" y2="270" class="leader" opacity="0.6"/>
+  <line x1="575" y1="270" x2="375" y2="270" class="leader" opacity="0.6"/>
+  <line x1="575" y1="270" x2="560" y2="270" class="leader" opacity="0.6"/>
+
+  <!-- Arrows from parallel agents down -->
+  <line x1="115" y1="296" x2="115" y2="340" class="arr" marker-end="url(#arrow)"/>
+  <line x1="300" y1="296" x2="300" y2="340" class="arr" marker-end="url(#arrow)"/>
+  <line x1="485" y1="296" x2="485" y2="340" class="arr" marker-end="url(#arrow)"/>
+
+  <!-- Status Check (Validation Gate) -->
+  <g class="node c-gray">
+    <rect x="200" y="340" width="280" height="56" rx="8"/>
+    <text class="th" x="340" y="360" text-anchor="middle" dominant-baseline="central">Validation Gate</text>
+    <text class="ts" x="340" y="378" text-anchor="middle" dominant-baseline="central">All phase checks pass?</text>
+  </g>
+
+  <!-- Arrow down -->
+  <line x1="340" y1="396" x2="340" y2="430" class="arr" marker-end="url(#arrow)"/>
+
+  <!-- Task Completed (success path) -->
+  <g class="node c-teal">
+    <rect x="240" y="430" width="200" height="56" rx="8"/>
+    <text class="th" x="340" y="450" text-anchor="middle" dominant-baseline="central">Task Completed</text>
+    <text class="ts" x="340" y="468" text-anchor="middle" dominant-baseline="central">Log to Supabase</text>
+  </g>
+
+  <!-- Escalation path (right) -->
+  <g class="node c-coral">
+    <rect x="480" y="430" width="160" height="56" rx="8"/>
+    <text class="th" x="560" y="450" text-anchor="middle" dominant-baseline="central">Escalate</text>
+    <text class="ts" x="560" y="468" text-anchor="middle" dominant-baseline="central">PagerDuty alert</text>
+  </g>
+
+  <!-- Conditional arrows -->
+  <path d="M 320 396 L 300 430" class="arr" marker-end="url(#arrow)"/>
+  <text class="ts" x="290" y="410">Pass</text>
+
+  <path d="M 360 396 L 520 430" class="arr" marker-end="url(#arrow)"/>
+  <text class="ts" x="430" y="410">Fail</text>
+
+  <!-- State Management Box -->
+  <g class="node c-blue">
+    <rect x="60" y="520" width="560" height="68" rx="8"/>
+    <text class="th" x="340" y="545" text-anchor="middle" dominant-baseline="central">State Management</text>
+    <text class="ts" x="340" y="565" text-anchor="middle" dominant-baseline="central">Tasks table: pending → in_progress → completed/failed/human_intervened</text>
+    <text class="ts" x="340" y="580" text-anchor="middle" dominant-baseline="central">Execution logs: Every tool call logged with thought_process to Supabase</text>
+  </g>
+
+  <!-- Skill Registry info -->
+  <g class="node c-green">
+    <rect x="60" y="610" width="560" height="68" rx="8"/>
+    <text class="th" x="340" y="635" text-anchor="middle" dominant-baseline="central">Skill Registry Protocol</text>
+    <text class="ts" x="340" y="655" text-anchor="middle" dominant-baseline="central">Each agent action = registered skill (unique ID, schema, handler URL)</text>
+    <text class="ts" x="340" y="670" text-anchor="middle" dominant-baseline="central">Skills execute via Supabase Edge Functions</text>
+  </g>
+
+  <!-- Execution Guarantees -->
+  <g class="node c-pink">
+    <rect x="60" y="700" width="560" height="98" rx="8"/>
+    <text class="th" x="340" y="725" text-anchor="middle" dominant-baseline="central">Core Execution Rules</text>
+    <text class="ts" x="340" y="745" text-anchor="middle" dominant-baseline="central">No silent failures • Modular skills only • Check task status before start</text>
+    <text class="ts" x="340" y="762" text-anchor="middle" dominant-baseline="central">Clean, typed code (TypeScript/Python) • All tool calls logged with thought process</text>
+    <text class="ts" x="340" y="779" text-anchor="middle" dominant-baseline="central">If task status = human_intervened, STOP and wait for input</text>
+  </g>
+</svg>
