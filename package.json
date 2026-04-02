@@ -1,0 +1,18 @@
+{
+  "name": "skill-kernel",
+  "version": "0.1.0",
+  "description": "Agentic Workflow Platform with Supabase",
+  "main": "index.js",
+  "scripts": {
+    "db:push": "supabase db push",
+    "db:pull": "supabase db pull",
+    "db:reset": "supabase db reset",
+    "dev": "supabase start"
+  },
+  "keywords": ["agentic", "workflow", "supabase"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "supabase": "^1.0.0"
+  }
+}

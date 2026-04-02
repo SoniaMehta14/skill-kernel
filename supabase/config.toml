@@ -1,0 +1,18 @@
+# Supabase configuration
+
+[api]
+# The maximum number of rows returns from a single stored procedure call.
+max_rows = 1000
+
+# Schema to expose in your API. Tables, views and stored procedures in this schema will get API routes.
+schemas = ["public"]
+
+# Extra schemas to protect from exposure in the API. These schemas will not have API routes.
+extra_search_path = ["public"]
+
+# The names of tables that should be protected from public access.
+protected_schemas = []
+
+[db]
+# The database major version to use
+major_version = 15
