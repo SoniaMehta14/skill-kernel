@@ -1,4 +1,4 @@
-# Skill-Kernel 🧠
+# Skill-Kernel 
 
 > Autonomous Agentic Workflows with Supabase & TypeScript
 
