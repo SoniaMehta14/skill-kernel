@@ -8,16 +8,20 @@
     "db:pull": "supabase db pull",
     "db:reset": "supabase db reset",
     "dev": "supabase start",
+    "start": "tsx src/server.ts",
     "type-check": "tsc --noEmit",
-    "lint": "eslint --ext .ts skills/ supabase/ services/ api/ observability/",
+    "lint": "eslint --ext .ts skills/ supabase/ services/ api/ observability/ src/",
     "build": "tsc"
   },
-  "keywords": ["agentic", "workflow", "supabase", "observability"],
+  "keywords": ["agentic", "workflow", "supabase", "observability", "mcp"],
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
     "@supabase/supabase-js": "^2.38.0",
-    "redis": "^4.6.0"
+    "dotenv": "^16.4.0",
+    "redis": "^4.6.0",
+    "zod": "^3.22.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
@@ -25,6 +29,7 @@
     "@typescript-eslint/parser": "^6.0.0",
     "eslint": "^8.0.0",
     "supabase": "^1.0.0",
+    "tsx": "^4.0.0",
     "typescript": "^5.0.0"
   }
 }

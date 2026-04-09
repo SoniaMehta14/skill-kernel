@@ -19,6 +19,6 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["skills/**/*.ts", "supabase/functions/**/*.ts"],
+  "include": ["skills/**/*.ts", "supabase/functions/**/*.ts", "src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }
