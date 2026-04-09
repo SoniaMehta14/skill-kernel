@@ -41,6 +41,14 @@
 - `DashboardAPI` — global + per-task metrics, HTML report generation
 - `DistributedTracer` — OpenTelemetry-compliant, Jaeger export, ASCII viz
 
+### Phase 5 — MCP Server
+- `src/server.ts` — McpServer with StdioTransport; exposes skills as MCP Tools
+- `skills/security/integrity-check.ts` — Security Agent skill; checks RLS via anon client
+- `.env.example` — full environment template covering all phases
+- Added deps: `@modelcontextprotocol/sdk`, `dotenv`, `zod`, `tsx`
+- `npm start` → `tsx src/server.ts` launches the MCP server
+- Tool schemas are JSON Schema-compatible with the `skill_registry` table
+
 ---
 
 ## Database Migrations Applied
@@ -65,8 +73,10 @@
 
 ---
 
-## Open Items / Next Phase (Phase 5+)
+## Open Items / Next Phase (Phase 6+)
 
+- [x] MCP Server with StdioTransport ✓ (Phase 5)
+- [x] integrityCheck skill (RLS audit) ✓ (Phase 5)
 - [ ] Prometheus metrics export
 - [ ] GraphQL API layer for dashboard
 - [ ] ML-based cost prediction
@@ -94,6 +104,10 @@ skills/
   comms/pagerduty-escalator.ts
   observability/supervisor.ts
   observability/hitl-gate.ts
+  security/integrity-check.ts  — integrityCheck (RLS audit)
+
+src/
+  server.ts              — MCP server (StdioTransport, two registered tools)
 
 services/
   billing.ts             — BillingManager
@@ -137,3 +151,6 @@ _Add timestamped notes below as work progresses._
 - Phase 4 summary and status report finalized
 - All 4 phases confirmed complete and production-ready
 - SESSION.md and ~/.claude/CLAUDE.md created
+- Audited lost MCP session — confirmed 0/5 tasks had been implemented
+- Phase 5 implemented: MCP server, integrityCheck skill, .env.example, tsconfig + package.json updates
+- Committed as 6d911f0

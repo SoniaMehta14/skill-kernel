@@ -1,12 +1,13 @@
 /**
  * Skill-Kernel MCP Server
  *
- * Exposes registered skills as standardized MCP Tools via StdioTransport.
- * Compatible with Claude Desktop, Claude Code CLI, and any MCP-aware client.
+ * Exposes all registered skills as standardized MCP Tools.
+ * Supports two transports:
+ *   - stdio  (default) — for Claude Desktop / Claude Code CLI
+ *   - http              — for deployed services via SSE
  *
- * Transport: stdio  (connect via `npm start`)
- * Schema:    JSON Schema definitions mirror the skill_registry table for
- *            backward compatibility with the existing Supabase registry.
+ * Set TRANSPORT=http and MCP_PORT=3001 to enable HTTP mode.
+ * Tool schemas mirror the skill_registry JSON Schema for backward compatibility.
  */
 
 import * as dotenv from "dotenv";
@@ -14,15 +15,21 @@ dotenv.config();
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import { createServer } from "node:http";
 import { z } from "zod";
 
 import { SupabaseClient as KernelClient } from "../supabase/client";
 import { executeSlackNotify } from "../skills/comms/slack-notifier";
+import { executePagerDutyEscalation } from "../skills/comms/pagerduty-escalator";
+import { executeLogAnalysis } from "../skills/sre/log-analyzer";
+import { executeEvaluation } from "../skills/qa/evaluator";
+import { ObservabilityAgent } from "../skills/observability/supervisor";
+import { executeApprovalGate } from "../skills/observability/hitl-gate";
 import { executeIntegrityCheck } from "../skills/security/integrity-check";
 
 // ---------------------------------------------------------------------------
-// Bootstrap — validate required env vars before doing anything else.
-// The AI never sees these values; they are opaque to the MCP client.
+// Bootstrap
 // ---------------------------------------------------------------------------
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
@@ -35,6 +42,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 const sb = new KernelClient(supabaseUrl, supabaseAnonKey);
+const supervisor = new ObservabilityAgent(sb);
 
 // ---------------------------------------------------------------------------
 // MCP Server
@@ -45,35 +53,83 @@ const server = new McpServer({
 });
 
 // ---------------------------------------------------------------------------
-// Tool: executeSlackNotify
+// Tool: analyzeExecutionLogs  (SRE Agent)
 //
-// skill_registry JSON Schema (for backward compatibility):
-// {
-//   "type": "object",
-//   "properties": {
-//     "task_id":        { "type": "string", "format": "uuid" },
-//     "channel":        { "type": "string" },
-//     "message":        { "type": "string" },
-//     "action_type":    { "type": "string", "enum": ["info","warning","error","success"] },
-//     "include_buttons":{ "type": "boolean" }
-//   },
-//   "required": ["task_id", "channel", "message"]
-// }
+// skill_registry schema:
+// { task_id: string, limit?: number }
+// ---------------------------------------------------------------------------
+server.tool(
+  "analyzeExecutionLogs",
+  "SRE Agent — Analyze execution_logs for a task to identify error patterns and root causes. Returns the top error pattern, frequency, and a suggested remediation action.",
+  {
+    task_id: z.string().uuid().describe("Task whose logs to analyze"),
+    limit: z
+      .number()
+      .int()
+      .positive()
+      .optional()
+      .describe("Max number of log entries to inspect (default: 100)"),
+  },
+  async (args) => {
+    const result = await executeLogAnalysis({
+      task_id: args.task_id,
+      skill_name: "log_analyzer",
+      input: { task_id: args.task_id, limit: args.limit },
+      sb,
+    });
+    return {
+      content: [{ type: "text", text: JSON.stringify(result.output, null, 2) }],
+    };
+  }
+);
+
+// ---------------------------------------------------------------------------
+// Tool: evaluateOutput  (QA Agent)
+//
+// skill_registry schema:
+// { task_id, output, ground_truth, metric }
+// ---------------------------------------------------------------------------
+server.tool(
+  "evaluateOutput",
+  "QA Agent — Validate an LLM output against a ground truth value. Returns a score (0–1), pass/fail, and feedback. Supports accuracy (Levenshtein), latency, and vibe metrics.",
+  {
+    task_id: z.string().uuid().describe("Task to associate this evaluation with"),
+    output: z.string().describe("The actual output produced by the agent"),
+    ground_truth: z.string().describe("The expected correct output"),
+    metric: z
+      .enum(["accuracy", "latency", "vibe"])
+      .describe("Evaluation metric to apply"),
+  },
+  async (args) => {
+    const result = await executeEvaluation({
+      task_id: args.task_id,
+      skill_name: "qa_evaluator",
+      input: {
+        output: args.output,
+        ground_truth: args.ground_truth,
+        metric: args.metric,
+      },
+      sb,
+    });
+    return {
+      content: [{ type: "text", text: JSON.stringify(result.output, null, 2) }],
+    };
+  }
+);
+
+// ---------------------------------------------------------------------------
+// Tool: executeSlackNotify  (Comms Agent)
+//
+// skill_registry schema:
+// { task_id, channel, message, action_type?, include_buttons? }
 // ---------------------------------------------------------------------------
 server.tool(
   "executeSlackNotify",
-  "Post a notification to a Slack channel and log execution to Supabase.",
+  "Comms Agent — Post a notification to a Slack channel and log the execution to Supabase.",
   {
-    task_id: z
-      .string()
-      .uuid()
-      .describe("Supabase task ID to associate this execution log with"),
-    channel: z
-      .string()
-      .describe("Slack channel name or ID (e.g. #alerts, C01234567)"),
-    message: z
-      .string()
-      .describe("Message body — supports Slack mrkdwn formatting"),
+    task_id: z.string().uuid().describe("Task to associate this log entry with"),
+    channel: z.string().describe("Slack channel name or ID (e.g. #alerts)"),
+    message: z.string().describe("Message body — supports Slack mrkdwn formatting"),
     action_type: z
       .enum(["info", "warning", "error", "success"])
       .optional()
@@ -81,7 +137,7 @@ server.tool(
     include_buttons: z
       .boolean()
       .optional()
-      .describe("Attach a View Task action button linking to the task"),
+      .describe("Attach a View Task action button to the message"),
   },
   async (args) => {
     const result = await executeSlackNotify({
@@ -96,7 +152,6 @@ server.tool(
       },
       sb,
     });
-
     return {
       content: [{ type: "text", text: JSON.stringify(result.output, null, 2) }],
     };
@@ -104,44 +159,151 @@ server.tool(
 );
 
 // ---------------------------------------------------------------------------
-// Tool: integrityCheck
+// Tool: escalateToPagerDuty  (Comms Agent)
 //
-// skill_registry JSON Schema (for backward compatibility):
-// {
-//   "type": "object",
-//   "properties": {
-//     "task_id": { "type": "string", "format": "uuid" },
-//     "tables":  { "type": "array", "items": { "type": "string" } }
-//   },
-//   "required": ["task_id"]
-// }
+// skill_registry schema:
+// { task_id, severity, title, description, escalation_policy_id, alert_type, metadata? }
+// ---------------------------------------------------------------------------
+server.tool(
+  "escalateToPagerDuty",
+  "Comms Agent — Create a PagerDuty incident for critical task failures. Logs the escalation to task_budget_alerts.",
+  {
+    task_id: z.string().uuid().describe("Task that triggered the escalation"),
+    severity: z
+      .enum(["info", "warning", "critical"])
+      .describe("Incident severity — critical maps to high urgency in PagerDuty"),
+    title: z.string().describe("Short incident title"),
+    description: z.string().describe("Full incident description with context"),
+    escalation_policy_id: z
+      .string()
+      .describe("PagerDuty escalation policy ID to route the incident"),
+    alert_type: z
+      .enum(["budget_exceeded", "loop_detected", "human_intervention", "budget_warning"])
+      .describe("Category of alert that triggered this escalation"),
+    metadata: z
+      .record(z.unknown())
+      .optional()
+      .describe("Additional key/value context to attach to the incident"),
+  },
+  async (args) => {
+    const result = await executePagerDutyEscalation({
+      task_id: args.task_id,
+      skill_name: "pagerduty_escalator",
+      input: {
+        task_id: args.task_id,
+        severity: args.severity,
+        title: args.title,
+        description: args.description,
+        escalation_policy_id: args.escalation_policy_id,
+        alert_type: args.alert_type,
+        metadata: args.metadata,
+      },
+      sb,
+    });
+    return {
+      content: [{ type: "text", text: JSON.stringify(result.output, null, 2) }],
+    };
+  }
+);
+
+// ---------------------------------------------------------------------------
+// Tool: monitorTask  (Observability Agent)
+//
+// skill_registry schema:
+// { task_id }
+// ---------------------------------------------------------------------------
+server.tool(
+  "monitorTask",
+  "Observability Agent — Check a task's health: token budget status, loop detection, iteration count, and recommendations. Call this before executing expensive skills.",
+  {
+    task_id: z.string().uuid().describe("Task to inspect"),
+  },
+  async (args) => {
+    const health = await supervisor.monitorTask(args.task_id);
+    return {
+      content: [{ type: "text", text: JSON.stringify(health, null, 2) }],
+    };
+  }
+);
+
+// ---------------------------------------------------------------------------
+// Tool: createApprovalGate  (Observability Agent — HITL)
+//
+// skill_registry schema:
+// { task_id, gate_name, reason, approval_timeout_seconds, required_approvers, slack_channel?, escalation_policy_id? }
+// ---------------------------------------------------------------------------
+server.tool(
+  "createApprovalGate",
+  "Observability Agent — Pause execution and request human approval via Slack before proceeding with a critical or destructive operation.",
+  {
+    task_id: z.string().uuid().describe("Task that requires approval"),
+    gate_name: z.string().describe("Short label for this approval step (e.g. deploy_to_production)"),
+    reason: z.string().describe("Explanation of why approval is needed"),
+    approval_timeout_seconds: z
+      .number()
+      .int()
+      .positive()
+      .describe("How long to wait for approval before timing out"),
+    required_approvers: z
+      .number()
+      .int()
+      .min(1)
+      .describe("Number of approvals required to proceed"),
+    slack_channel: z
+      .string()
+      .optional()
+      .describe("Slack channel to post the approval request (default: #approvals)"),
+    escalation_policy_id: z
+      .string()
+      .optional()
+      .describe("PagerDuty policy to escalate to if approval times out"),
+  },
+  async (args) => {
+    const result = await executeApprovalGate({
+      task_id: args.task_id,
+      skill_name: "hitl_gate",
+      input: {
+        task_id: args.task_id,
+        gate_name: args.gate_name,
+        reason: args.reason,
+        approval_timeout_seconds: args.approval_timeout_seconds,
+        required_approvers: args.required_approvers,
+        slack_channel: args.slack_channel,
+        escalation_policy_id: args.escalation_policy_id,
+      },
+      sb,
+    });
+    return {
+      content: [{ type: "text", text: JSON.stringify(result.output, null, 2) }],
+    };
+  }
+);
+
+// ---------------------------------------------------------------------------
+// Tool: integrityCheck  (Security Agent)
+//
+// skill_registry schema:
+// { task_id, tables? }
 // ---------------------------------------------------------------------------
 server.tool(
   "integrityCheck",
-  "Verify RLS policies are enforced on Supabase public tables. Returns a pass/fail report per table.",
+  "Security Agent — Verify RLS policies are enforced on Supabase public tables. Returns a pass/fail report per table.",
   {
-    task_id: z
-      .string()
-      .uuid()
-      .describe("Supabase task ID to associate this audit log with"),
+    task_id: z.string().uuid().describe("Task to associate this audit with"),
     tables: z
       .array(z.string())
       .optional()
       .describe(
-        "Specific tables to audit. Defaults to all known protected tables: tasks, execution_logs, task_budget_alerts, skill_registry."
+        "Tables to audit. Defaults to: tasks, execution_logs, task_budget_alerts, skill_registry."
       ),
   },
   async (args) => {
     const result = await executeIntegrityCheck({
       task_id: args.task_id,
       skill_name: "integrity_check",
-      input: {
-        task_id: args.task_id,
-        tables: args.tables,
-      },
+      input: { task_id: args.task_id, tables: args.tables },
       sb,
     });
-
     return {
       content: [{ type: "text", text: JSON.stringify(result.output, null, 2) }],
     };
@@ -149,12 +311,61 @@ server.tool(
 );
 
 // ---------------------------------------------------------------------------
-// Start — connect to stdio transport and begin serving requests.
-// Nothing should write to stdout after server.connect() is called.
+// Transport
 // ---------------------------------------------------------------------------
-async function main(): Promise<void> {
+const TRANSPORT = process.env.TRANSPORT ?? "stdio";
+const HTTP_PORT = parseInt(process.env.MCP_PORT ?? "3001", 10);
+
+async function startStdio(): Promise<void> {
   const transport = new StdioServerTransport();
   await server.connect(transport);
+  // Do NOT write to stdout after this — it is the MCP wire
+}
+
+async function startHttp(): Promise<void> {
+  // Track active SSE transports by session so POST /messages can route correctly.
+  const sessions = new Map<string, SSEServerTransport>();
+
+  const httpServer = createServer(async (req, res) => {
+    const url = new URL(req.url ?? "/", `http://localhost:${HTTP_PORT}`);
+
+    if (req.method === "GET" && url.pathname === "/sse") {
+      const transport = new SSEServerTransport("/messages", res);
+      sessions.set(transport.sessionId, transport);
+      res.on("close", () => sessions.delete(transport.sessionId));
+      await server.connect(transport);
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/messages") {
+      const sessionId = url.searchParams.get("sessionId") ?? "";
+      const transport = sessions.get(sessionId);
+      if (!transport) {
+        res.writeHead(404, { "Content-Type": "text/plain" });
+        res.end("Session not found");
+        return;
+      }
+      await transport.handlePostMessage(req, res);
+      return;
+    }
+
+    res.writeHead(404, { "Content-Type": "text/plain" });
+    res.end("Not found");
+  });
+
+  httpServer.listen(HTTP_PORT, () => {
+    process.stderr.write(
+      `skill-kernel MCP server listening on http://localhost:${HTTP_PORT}/sse\n`
+    );
+  });
+}
+
+async function main(): Promise<void> {
+  if (TRANSPORT === "http") {
+    await startHttp();
+  } else {
+    await startStdio();
+  }
 }
 
 main().catch((err: unknown) => {
